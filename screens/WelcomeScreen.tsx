@@ -16,7 +16,7 @@ const WelcomeScreen = () => {
             <Image size={40} strokeWidth={1.5} />
         </div>
         <div className="text-center">
-            <h1 className="text-2xl font-bold text-[#1C1C1E]">Photo-expression</h1>
+            <h1 className="text-2xl font-bold text-[#1C1C1E]">Photo-mobile-expression</h1>
             <p className="text-[#777B80] mt-2">Ateliers interactifs simplifiés</p>
         </div>
       </div>

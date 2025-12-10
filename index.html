@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-    <title>Photo-expression Mobile</title>
+    <title>Photo-mobile-expression</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
@@ -38,6 +38,24 @@
         width: 0px;
         background: transparent;
       }
+
+      /* PRINT STYLES FOR PDF EXPORT */
+      @media print {
+        body {
+          background-color: white;
+        }
+        /* Hide the mobile app UI wrapper */
+        #root > div { 
+          display: none !important;
+        }
+        /* Make sure the print container is visible */
+        #print-container {
+          display: block !important;
+          width: 100%;
+          height: auto;
+          overflow: visible;
+        }
+      }
     </style>
   <script type="importmap">
 {
@@ -45,12 +63,15 @@
     "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.1/",
     "lucide-react": "https://aistudiocdn.com/lucide-react@^0.556.0",
     "react/": "https://aistudiocdn.com/react@^19.2.1/",
-    "react": "https://aistudiocdn.com/react@^19.2.1"
+    "react": "https://aistudiocdn.com/react@^19.2.1",
+    "react-dom": "https://esm.sh/react-dom@^19.2.1"
   }
 }
 </script>
 </head>
   <body>
     <div id="root"></div>
+    <!-- Container for the printable report, populated by React -->
+    <div id="print-portal"></div>
   </body>
 </html>

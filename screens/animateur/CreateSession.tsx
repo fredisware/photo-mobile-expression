@@ -1,19 +1,25 @@
 import React, { useState } from 'react';
 import { useSession } from '../../context/SessionContext';
 import { Button, Input, Card } from '../../components/Button';
-import { ArrowLeft, UploadCloud } from 'lucide-react';
+import { ArrowLeft, Check, FolderOpen } from 'lucide-react';
 import { SessionStage } from '../../types';
+import { PHOTO_FOLDERS } from '../../constants';
 
 const CreateSession = () => {
   const { createSession, session } = useSession();
   const [theme, setTheme] = useState("Réussite Professionnelle");
   const [question, setQuestion] = useState("Quelle image représente le mieux votre réussite cette semaine ?");
+  const [selectedFolderId, setSelectedFolderId] = useState(PHOTO_FOLDERS[1].id); // Default to Social
   const [isCreating, setIsCreating] = useState(true);
 
   if (session.stage !== SessionStage.LOBBY && !isCreating) return null;
 
-  // If already in lobby, we show lobby view, handled by parent. 
-  // This component is just the form.
+  const handleCreate = () => {
+      const selectedFolder = PHOTO_FOLDERS.find(f => f.id === selectedFolderId);
+      if (selectedFolder) {
+          createSession(theme, question, selectedFolder.photos);
+      }
+  };
 
   return (
     <div className="flex flex-col h-full px-5 pt-6 pb-6 animate-fade-in">
@@ -24,7 +30,7 @@ const CreateSession = () => {
             <h1 className="text-xl font-bold text-[#1C1C1E]">Nouvelle Séance</h1>
         </div>
 
-        <div className="flex-1">
+        <div className="flex-1 overflow-y-auto no-scrollbar pb-4">
             <Card className="mb-6">
                 <h2 className="text-sm font-bold text-[#1C1C1E] mb-4 uppercase tracking-wider">Configuration</h2>
                 <Input 
@@ -43,16 +49,47 @@ const CreateSession = () => {
                 </div>
             </Card>
 
-            <Card>
-                <h2 className="text-sm font-bold text-[#1C1C1E] mb-4 uppercase tracking-wider">Support Visuel</h2>
-                <div className="h-20 border-2 border-dashed border-gray-300 rounded-[16px] flex items-center justify-center gap-3 text-gray-400">
-                    <UploadCloud size={20} />
-                    <span className="text-sm font-medium">Dossier sélectionné: <span className="text-[#4A89DA]">Nature & Zen</span></span>
+            <div>
+                <h2 className="text-sm font-bold text-[#1C1C1E] mb-4 uppercase tracking-wider px-2">Support Visuel</h2>
+                <div className="flex gap-4 overflow-x-auto pb-4 px-2 -mx-2 no-scrollbar">
+                    {PHOTO_FOLDERS.map(folder => {
+                        const isSelected = selectedFolderId === folder.id;
+                        return (
+                            <div 
+                                key={folder.id}
+                                onClick={() => setSelectedFolderId(folder.id)}
+                                className={`
+                                    relative flex-shrink-0 w-40 rounded-[20px] overflow-hidden border-2 transition-all duration-300 cursor-pointer bg-white shadow-sm
+                                    ${isSelected ? 'border-[#4A89DA] scale-100 ring-2 ring-[#4A89DA]/20' : 'border-transparent scale-95 opacity-80'}
+                                `}
+                            >
+                                <div className="h-24 bg-gray-200">
+                                    <img src={folder.cover} className="w-full h-full object-cover" />
+                                </div>
+                                <div className="p-3">
+                                    <h3 className={`font-bold text-sm mb-1 leading-tight ${isSelected ? 'text-[#4A89DA]' : 'text-gray-700'}`}>
+                                        {folder.name}
+                                    </h3>
+                                    <p className="text-[10px] text-gray-400 line-clamp-2 leading-snug">
+                                        {folder.description}
+                                    </p>
+                                    <p className="text-[10px] font-bold text-gray-300 mt-2">
+                                        {folder.photos.length} photos
+                                    </p>
+                                </div>
+                                {isSelected && (
+                                    <div className="absolute top-2 right-2 bg-[#4A89DA] text-white rounded-full p-1 shadow-md">
+                                        <Check size={12} />
+                                    </div>
+                                )}
+                            </div>
+                        )
+                    })}
                 </div>
-            </Card>
+            </div>
         </div>
 
-        <Button onClick={() => createSession(theme, question)}>
+        <Button onClick={handleCreate} disabled={!theme || !question}>
             Créer la séance
         </Button>
     </div>

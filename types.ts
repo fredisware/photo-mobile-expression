@@ -10,6 +10,8 @@ export enum SessionStage {
   SILENT_PHASE = 'SILENT_PHASE', // Timer
   SELECTION_PHASE = 'SELECTION_PHASE', // Picking photos
   SPEAKING_TOUR = 'SPEAKING_TOUR', // Synthesis/Expression
+  ROUND_TRANSITION = 'ROUND_TRANSITION', // Intermission between rounds
+  DEBATE_TOUR = 'DEBATE_TOUR', // Second round: Feedback/Group discussion
   SYNTHESIS = 'SYNTHESIS', // Final notes
   ENDED = 'ENDED'
 }
@@ -21,12 +23,21 @@ export interface Photo {
   selectedByUserId?: string; // If null, available
 }
 
+export interface PhotoFolder {
+  id: string;
+  name: string;
+  description: string;
+  cover: string;
+  photos: Photo[];
+}
+
 export interface Participant {
   id: string;
   name: string;
   avatar: string;
   status: 'waiting' | 'thinking' | 'selected' | 'speaking' | 'done';
   selectedPhotoId?: string;
+  isGuest?: boolean; // True if the user has no phone and is managed by Animateur
 }
 
 export interface SessionState {
@@ -38,7 +49,8 @@ export interface SessionState {
   isTimerRunning: boolean;
   participants: Participant[];
   photos: Photo[];
-  currentSpeakerId?: string;
+  currentSpeakerId?: string; // The person talking
+  currentSubjectId?: string; // The person whose photo is being discussed (Debate Tour)
   notes: string;
 }
 
@@ -47,15 +59,22 @@ export interface SessionContextType {
   setRole: (role: UserRole) => void;
   session: SessionState;
   // Actions
-  createSession: (theme: string, question: string) => void;
+  createSession: (theme: string, question: string, photos: Photo[]) => void;
   startSession: () => void;
   startSilentPhase: (durationMinutes: number) => void;
   startSelectionPhase: () => void;
   startSpeakingTour: () => void;
+  startDebateTour: () => void;
   nextSpeaker: () => void;
   endSession: () => void;
+  resetSession: () => void; // Completely reset app
   joinSession: (code: string, name: string) => void;
-  selectPhoto: (photoId: string) => void;
+  addGuestParticipant: (name: string) => void;
+  selectPhoto: (photoId: string, userId: string) => void;
   toggleTimer: () => void;
   updateNotes: (notes: string) => void;
+  // New Moderation & Timer features
+  removeParticipant: (userId: string) => void;
+  addTime: (seconds: number) => void;
+  forceRandomSelection: () => void;
 }

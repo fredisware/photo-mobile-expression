@@ -31,11 +31,16 @@ export const Button: React.FC<ButtonProps> = ({
   );
 };
 
-export const Card: React.FC<{children: React.ReactNode, className?: string}> = ({ children, className = '' }) => (
-    <div className={`bg-white rounded-[24px] p-5 shadow-sm ${className}`}>
-        {children}
-    </div>
-);
+export const Card: React.FC<{children: React.ReactNode, className?: string}> = ({ children, className = '' }) => {
+    // Only apply default white background if no specific background is provided in className
+    const defaultBg = className.includes('bg-') ? '' : 'bg-white';
+    
+    return (
+        <div className={`rounded-[24px] p-5 shadow-sm ${defaultBg} ${className}`}>
+            {children}
+        </div>
+    );
+};
 
 export const Input: React.FC<React.InputHTMLAttributes<HTMLInputElement> & { label?: string }> = ({ label, className = '', ...props }) => (
     <div className="flex flex-col gap-2 mb-4">
