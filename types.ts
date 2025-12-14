@@ -37,7 +37,9 @@ export interface Participant {
   avatar: string;
   status: 'waiting' | 'thinking' | 'selected' | 'speaking' | 'done';
   selectedPhotoId?: string;
+  selectionTimestamp?: number; // To track who picked first
   isGuest?: boolean; // True if the user has no phone and is managed by Animateur
+  roleLabel?: string; // e.g. "Animateur"
 }
 
 export interface SessionState {
@@ -51,6 +53,7 @@ export interface SessionState {
   photos: Photo[];
   currentSpeakerId?: string; // The person talking
   currentSubjectId?: string; // The person whose photo is being discussed (Debate Tour)
+  speakingOrder?: string[]; // Array of IDs defining the turn order based on selection time
   notes: string;
 }
 
@@ -68,8 +71,8 @@ export interface SessionContextType {
   nextSpeaker: () => void;
   endSession: () => void;
   resetSession: () => void; // Completely reset app
-  joinSession: (code: string, name: string) => void;
-  addGuestParticipant: (name: string) => void;
+  joinSession: (code: string, name: string, userId: string) => void;
+  addGuestParticipant: (name: string, roleLabel?: string) => void;
   selectPhoto: (photoId: string, userId: string) => void;
   toggleTimer: () => void;
   updateNotes: (notes: string) => void;

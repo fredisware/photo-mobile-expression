@@ -1,16 +1,5 @@
 import { Photo, PhotoFolder } from './types';
 
-const NATURE_PHOTOS: Photo[] = [
-  { id: 'n1', url: 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=800&q=80', keywords: ['forêt', 'lumière'] },
-  { id: 'n2', url: 'https://images.unsplash.com/photo-1472214103451-9374bd1c798e?w=800&q=80', keywords: ['montagne', 'liberté'] },
-  { id: 'n3', url: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&q=80', keywords: ['plage', 'calme'] },
-  { id: 'n4', url: 'https://images.unsplash.com/photo-1518173946687-a4c8892bbd9f?w=800&q=80', keywords: ['nature', 'détail'] },
-  { id: 'n5', url: 'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=800&q=80', keywords: ['brouillard', 'mystère'] },
-  { id: 'n6', url: 'https://images.unsplash.com/photo-1465146344425-f00d5f5c8f07?w=800&q=80', keywords: ['nuit', 'étoiles'] },
-  { id: 'n7', url: 'https://images.unsplash.com/photo-1426604966848-d7adac402bff?w=800&q=80', keywords: ['montagne', 'aventure'] },
-  { id: 'n8', url: 'https://images.unsplash.com/photo-1475924156734-496f6cac6ec1?w=800&q=80', keywords: ['aube', 'espoir'] },
-];
-
 // Updated Social Photos with robust URLs reflecting "Yapaka" themes (emotions, society, daily life)
 const SOCIAL_PHOTOS: Photo[] = [
   { id: 's1', url: 'https://images.unsplash.com/photo-1543269865-cbf427effbad?w=800&q=80', keywords: ['groupe', 'amitié'] },
@@ -41,20 +30,13 @@ const SOCIAL_PHOTOS: Photo[] = [
 
 export const PHOTO_FOLDERS: PhotoFolder[] = [
   {
-    id: 'nature',
-    name: 'Nature & Zen',
-    description: 'Paysages apaisants et abstraits pour l\'introspection.',
-    cover: 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=400&q=80',
-    photos: NATURE_PHOTOS
-  },
-  {
     id: 'social',
     name: 'Vie Sociale & Émotions',
     description: 'Scènes du quotidien, interactions humaines et société.',
-    cover: 'https://images.unsplash.com/photo-1511632765486-a01980e01a18?w=400&q=80', // Specific cover
+    cover: 'https://images.unsplash.com/photo-1511632765486-a01980e01a18?w=400&q=80',
     photos: SOCIAL_PHOTOS
   }
 ];
 
-export const MOCK_PHOTOS = NATURE_PHOTOS; // Default fallback
+export const MOCK_PHOTOS = SOCIAL_PHOTOS; // Default fallback
 export const INITIAL_SESSION_CODE = "XJ9-2B";

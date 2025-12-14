@@ -2,14 +2,15 @@ import React, { useState } from 'react';
 import { useSession } from '../../context/SessionContext';
 import { Button, Input, Card } from '../../components/Button';
 import { ArrowLeft, Check, FolderOpen } from 'lucide-react';
-import { SessionStage } from '../../types';
+import { SessionStage, UserRole } from '../../types';
 import { PHOTO_FOLDERS } from '../../constants';
 
 const CreateSession = () => {
-  const { createSession, session } = useSession();
+  const { createSession, session, setRole } = useSession();
   const [theme, setTheme] = useState("Réussite Professionnelle");
   const [question, setQuestion] = useState("Quelle image représente le mieux votre réussite cette semaine ?");
-  const [selectedFolderId, setSelectedFolderId] = useState(PHOTO_FOLDERS[1].id); // Default to Social
+  // Default to the first available folder (Social) since Nature was removed
+  const [selectedFolderId, setSelectedFolderId] = useState(PHOTO_FOLDERS[0].id); 
   const [isCreating, setIsCreating] = useState(true);
 
   if (session.stage !== SessionStage.LOBBY && !isCreating) return null;
@@ -24,7 +25,10 @@ const CreateSession = () => {
   return (
     <div className="flex flex-col h-full px-5 pt-6 pb-6 animate-fade-in">
         <div className="flex items-center gap-4 mb-6">
-            <button className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-gray-500 shadow-sm">
+            <button 
+                onClick={() => setRole(UserRole.NONE)}
+                className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-gray-500 shadow-sm hover:bg-gray-100 transition-colors"
+            >
                 <ArrowLeft size={20} />
             </button>
             <h1 className="text-xl font-bold text-[#1C1C1E]">Nouvelle Séance</h1>
