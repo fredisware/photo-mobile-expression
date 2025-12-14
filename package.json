@@ -11,7 +11,11 @@
   "dependencies": {
     "react-dom": "^19.2.1",
     "lucide-react": "^0.556.0",
-    "react": "^19.2.1"
+    "react": "^19.2.1",
+    "firebase": "^12.6.0",
+    "vite": "^7.2.7",
+    "@vitejs/plugin-react": "^5.1.2",
+    "@capacitor/core": "^8.0.0"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",

@@ -1,0 +1,8 @@
+{
+  "appId": "com.photoexpression.app",
+  "appName": "Photo Expression",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https"
+  }
+}
