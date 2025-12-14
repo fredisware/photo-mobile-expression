@@ -8,14 +8,14 @@ import { getDatabase, ref, set, onValue, update as firebaseUpdate } from 'fireba
 // POUR PUBLIER L'APP : Remplacez ces valeurs par celles de votre projet Firebase.
 // Sans cela, l'app fonctionnera en mode "local" (BroadcastChannel) uniquement.
 const firebaseConfig = {
-  apiKey: "AIzaSyCd_YtWnYLCjtzJ3qoI4BsQk4AiKLH-Dp8",
-  authDomain: "photo-mobile-expression.firebaseapp.com",
-  databaseURL: "https://photo-mobile-expression-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId: "photo-mobile-expression",
-  storageBucket: "photo-mobile-expression.firebasestorage.app",
-  messagingSenderId: "472886972860",
-  appId: "1:472886972860:web:89b507895a9336ac4a5bb9",
-  measurementId: "G-SHZK323RH9"
+  apiKey: "",
+  authDomain: "",
+  databaseURL: "",
+  projectId: "",
+  storageBucket: "",
+  messagingSenderId: "",
+  appId: "",
+  measurementId: ""
 };
 
 // Initialize Firebase only if config is present
