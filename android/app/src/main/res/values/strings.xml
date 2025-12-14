@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Photo Expression</string>
+    <string name="title_activity_main">Photo Expression</string>
+    <string name="package_name">com.photoexpression.app</string>
+    <string name="custom_url_scheme">com.photoexpression.app</string>
+</resources>

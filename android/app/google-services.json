@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "472886972860",
+    "firebase_url": "https://photo-mobile-expression-default-rtdb.europe-west1.firebasedatabase.app",
+    "project_id": "photo-mobile-expression",
+    "storage_bucket": "photo-mobile-expression.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:472886972860:android:472aca3fd5895a774a5bb9",
+        "android_client_info": {
+          "package_name": "io.fredisware.photomobileexpression"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAEo7iBcmIks89bqt7jirZ3Ea2osZ0Nisw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
