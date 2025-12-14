@@ -12,11 +12,14 @@
     "@capacitor/core": "^8.0.0",
     "lucide-react": "^0.556.0",
     "react": "^19.2.1",
+<<<<<<< HEAD
     "react-dom": "^19.2.1"
+=======
     "firebase": "^12.6.0",
     "vite": "^7.2.7",
     "@vitejs/plugin-react": "^5.1.2",
     "@capacitor/core": "^8.0.0"
+>>>>>>> eacd7739c305368f8d364990aee252b587448b6d
   },
   "devDependencies": {
     "@capacitor/cli": "^8.0.0",
