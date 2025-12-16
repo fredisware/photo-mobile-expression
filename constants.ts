@@ -1,4 +1,5 @@
-import { Photo, PhotoFolder } from './types';
+
+import { Photo, PhotoFolder, SessionTemplate } from './types';
 
 // Updated Social Photos with robust URLs reflecting "Yapaka" themes (emotions, society, daily life)
 const SOCIAL_PHOTOS: Photo[] = [
@@ -36,6 +37,41 @@ export const PHOTO_FOLDERS: PhotoFolder[] = [
     cover: 'https://images.unsplash.com/photo-1511632765486-a01980e01a18?w=400&q=80',
     photos: SOCIAL_PHOTOS
   }
+];
+
+export const SESSION_TEMPLATES: SessionTemplate[] = [
+    {
+        id: 'meteo',
+        title: 'Météo Intérieure',
+        description: 'Pour démarrer une réunion ou un atelier et prendre la température du groupe.',
+        question: 'Quelle image correspond le mieux à votre état d\'esprit actuel ?',
+        defaultFolderId: 'social',
+        icon: 'Sun'
+    },
+    {
+        id: 'cohesion',
+        title: 'Cohésion d\'équipe',
+        description: 'Pour renforcer les liens et parler des valeurs communes.',
+        question: 'Quelle photo représente le mieux la force de notre équipe ?',
+        defaultFolderId: 'social',
+        icon: 'Users'
+    },
+    {
+        id: 'bilan',
+        title: 'Bilan de projet',
+        description: 'Pour faire un retour d\'expérience sur une période écoulée.',
+        question: 'Quelle image résume le mieux votre vécu sur ce projet ?',
+        defaultFolderId: 'social',
+        icon: 'BarChart'
+    },
+    {
+        id: 'libre',
+        title: 'Séance Libre',
+        description: 'Créez votre séance de zéro en choisissant votre thème.',
+        question: '',
+        defaultFolderId: 'social',
+        icon: 'Edit3'
+    }
 ];
 
 export const MOCK_PHOTOS = SOCIAL_PHOTOS; // Default fallback

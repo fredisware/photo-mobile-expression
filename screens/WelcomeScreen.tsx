@@ -13,7 +13,15 @@ const WelcomeScreen = () => {
         <div className="relative mb-8">
             <div className="absolute inset-0 bg-[#4A89DA] blur-3xl opacity-20 rounded-full animate-pulse"></div>
             <div className="relative w-32 h-32 bg-transparent transform hover:scale-105 transition-transform duration-500 drop-shadow-2xl">
-                <img src="/icon.svg" alt="App Logo" className="w-full h-full object-contain" />
+                {/* Inline SVG Logo to ensure it displays correctly */}
+                <svg viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
+                    <rect width="512" height="512" rx="128" fill="#4A89DA"/>
+                    <path d="M368 144H144C117.49 144 96 165.49 96 192V320C96 346.51 117.49 368 144 368H368C394.51 368 416 346.51 416 320V192C416 165.49 394.51 144 368 144Z" fill="white" fillOpacity="0.2"/>
+                    <circle cx="256" cy="256" r="90" stroke="white" strokeWidth="32"/>
+                    <circle cx="256" cy="256" r="36" fill="white"/>
+                    <circle cx="370" cy="142" r="40" fill="#A4D5A8" stroke="#4A89DA" strokeWidth="8"/>
+                    <path d="M160 200H190" stroke="white" strokeWidth="12" strokeLinecap="round"/>
+                </svg>
             </div>
             <div className="absolute -top-2 -right-2 bg-yellow-400 text-white p-2 rounded-full shadow-lg animate-bounce">
                 <Sparkles size={16} />

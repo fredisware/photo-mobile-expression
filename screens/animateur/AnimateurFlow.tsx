@@ -1,10 +1,11 @@
+
 import React, { useState } from 'react';
 import ReactDOM from 'react-dom';
 import { useSession } from '../../context/SessionContext';
-import { SessionStage, UserRole } from '../../types';
+import { SessionStage, UserRole, SessionTemplate } from '../../types';
 import CreateSession from './CreateSession';
 import { Button, Card, Input } from '../../components/Button';
-import { Play, Pause, FastForward, CheckCircle, Users, Clock, Image as ImageIcon, MessageCircle, FileText, UserPlus, X, ChevronLeft, ChevronRight, Smartphone, EyeOff, Scale, MicOff, Lock, Trash2, Shuffle, Plus, Repeat, ArrowRight, LogOut, AlertTriangle, User, Share2 } from 'lucide-react';
+import { Play, Pause, FastForward, CheckCircle, Users, Clock, Image as ImageIcon, MessageCircle, FileText, UserPlus, X, ChevronLeft, ChevronRight, Smartphone, EyeOff, Scale, MicOff, Lock, Trash2, Shuffle, Plus, Repeat, ArrowRight, LogOut, AlertTriangle, User, Share2, Archive, Hand, Mic, StopCircle, Cloud, ArrowLeft } from 'lucide-react';
 import { MOCK_PHOTOS } from '../../constants';
 
 // Extracted component to prevent re-renders losing input focus
@@ -46,10 +47,10 @@ const GuestAddForm = ({ onAdd }: { onAdd: (name: string) => void }) => {
 };
 
 // Custom Modal Component
-const ConfirmModal = ({ isOpen, title, message, icon: Icon, confirmLabel, confirmVariant = 'danger', onConfirm, onCancel }: any) => {
+const ConfirmModal = ({ isOpen, title, message, icon: Icon, confirmLabel, confirmVariant = 'danger', onConfirm, onCancel, alternateAction }: any) => {
     if (!isOpen) return null;
     return (
-        <div className="absolute inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-6 animate-fade-in">
+        <div className="absolute inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-6 animate-fade-in no-print">
             <div className="bg-white rounded-[24px] p-6 shadow-2xl w-full max-w-xs text-center transform transition-all scale-100 animate-slide-up">
                  <div className={`w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4 ${confirmVariant === 'danger' ? 'bg-red-50 text-red-500' : 'bg-blue-50 text-blue-500'}`}>
                     <Icon size={24} />
@@ -58,6 +59,9 @@ const ConfirmModal = ({ isOpen, title, message, icon: Icon, confirmLabel, confir
                  <p className="text-sm text-gray-500 mb-6 leading-relaxed">{message}</p>
                  <div className="flex flex-col gap-3">
                      <Button variant={confirmVariant} onClick={onConfirm} fullWidth>{confirmLabel}</Button>
+                     {alternateAction && (
+                         <Button variant="secondary" onClick={alternateAction.onClick} fullWidth className="bg-gray-50">{alternateAction.label}</Button>
+                     )}
                      <Button variant="ghost" onClick={onCancel} fullWidth>Annuler</Button>
                  </div>
             </div>
@@ -68,12 +72,13 @@ const ConfirmModal = ({ isOpen, title, message, icon: Icon, confirmLabel, confir
 const AnimateurFlow = () => {
   const { 
     session, startSession, toggleTimer, startSelectionPhase, 
-    startSpeakingTour, startDebateTour, nextSpeaker, endSession, resetSession, updateNotes, addGuestParticipant, 
-    selectPhoto, removeParticipant, addTime, forceRandomSelection, setRole
+    startSpeakingTour, startDebateTour, nextSpeaker, setSpeaker, endSession, goToRoundTransition, resetSession, updateNotes, addGuestParticipant, 
+    selectPhoto, removeParticipant, addTime, forceRandomSelection, setRole, saveTemplate, deleteTemplate
   } = useSession();
   
   const [selectingForGuestId, setSelectingForGuestId] = useState<string | null>(null);
   const [carouselIndex, setCarouselIndex] = useState(0);
+  const [guestEmotion, setGuestEmotion] = useState("");
   
   // Animateur Self-Join State
   const [animateurName, setAnimateurName] = useState("Animateur");
@@ -83,6 +88,50 @@ const AnimateurFlow = () => {
   const [participantToDelete, setParticipantToDelete] = useState<{id: string, name: string} | null>(null);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [showForceConfirm, setShowForceConfirm] = useState(false);
+
+  // Archive & Close Logic
+  const handleArchiveAndClose = () => {
+      // 1. Delete the original template if it exists (moving it to history essentially)
+      if (session.originTemplateId) {
+          deleteTemplate(session.originTemplateId);
+      }
+
+      // Generate a text summary of selections
+      const selectionSummary = session.participants
+          .filter(p => p.selectedPhotoId)
+          .map(p => {
+              const photo = session.photos.find(ph => ph.id === p.selectedPhotoId);
+              return `- ${p.name}: ${p.emotionWord ? `"${p.emotionWord}"` : 'Sans émotion'} (Photo #${p.selectedPhotoId})`;
+          })
+          .join('\n');
+
+      const fullNotes = `${session.notes ? session.notes + '\n\n' : ''}=== RÉCAPITULATIF DES CHOIX ===\n${selectionSummary}`;
+
+      // 2. Create snapshot as a template marked archived
+      const archive: SessionTemplate = {
+          id: `archive-${Date.now()}`,
+          title: session.theme,
+          question: session.taskQuestion,
+          description: "Séance archivée",
+          defaultFolderId: 'social', 
+          icon: 'Archive',
+          isSystem: false,
+          archived: true,
+          archiveNotes: fullNotes,
+          archiveDate: new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
+      };
+      
+      saveTemplate(archive);
+      resetSession();
+      setRole(UserRole.NONE);
+      setShowResetConfirm(false);
+  };
+
+  const handleCloseWithoutArchive = () => {
+      resetSession();
+      setRole(UserRole.NONE);
+      setShowResetConfirm(false);
+  };
 
   // STAGE 0: Create (if default state)
   if (!session.theme) {
@@ -278,14 +327,14 @@ const AnimateurFlow = () => {
                           <p className="text-xs text-gray-400 uppercase">Choisir pour</p>
                           <h2 className="text-xl font-bold">{guest?.name}</h2>
                       </div>
-                      <button onClick={() => setSelectingForGuestId(null)} className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center">
+                      <button onClick={() => { setSelectingForGuestId(null); setGuestEmotion(""); }} className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center">
                           <X size={20} />
                       </button>
                   </div>
 
                   {/* Carousel Content */}
                   <div className="flex-1 flex flex-col items-center justify-center p-4">
-                      <div className="relative w-full aspect-[4/5] max-h-[60vh] rounded-[32px] overflow-hidden shadow-2xl mb-6 bg-gray-800">
+                      <div className={`relative w-full aspect-[4/5] rounded-[32px] overflow-hidden shadow-2xl mb-6 bg-gray-800 transition-all max-h-[50vh]`}>
                           <img src={currentPhoto.url} className="w-full h-full object-cover" />
                           {isTaken && (
                               <div className="absolute inset-0 bg-black/60 flex items-center justify-center flex-col gap-2">
@@ -317,6 +366,18 @@ const AnimateurFlow = () => {
                               <ChevronRight size={24} />
                           </button>
                       </div>
+
+                      {/* Emotion Input for Guests - Always visible now */}
+                      {!isTaken && (
+                          <div className="w-full max-w-xs mb-2">
+                              <input 
+                                  value={guestEmotion}
+                                  onChange={(e) => setGuestEmotion(e.target.value)}
+                                  placeholder="Mot-clé émotion (facultatif)..."
+                                  className="w-full h-12 bg-white/10 border border-white/20 rounded-[14px] px-4 text-center text-white placeholder:text-gray-500 focus:outline-none focus:border-blue-500 focus:bg-white/20 transition-all"
+                              />
+                          </div>
+                      )}
                   </div>
 
                   {/* Action Footer */}
@@ -325,8 +386,9 @@ const AnimateurFlow = () => {
                         fullWidth 
                         disabled={!!isTaken}
                         onClick={() => {
-                            selectPhoto(currentPhoto.id, selectingForGuestId);
+                            selectPhoto(currentPhoto.id, selectingForGuestId, guestEmotion);
                             setSelectingForGuestId(null);
+                            setGuestEmotion("");
                         }}
                       >
                           {isTaken ? "Non disponible" : "Sélectionner cette photo"}
@@ -422,6 +484,7 @@ const AnimateurFlow = () => {
                                         onClick={() => {
                                             setCarouselIndex(0);
                                             setSelectingForGuestId(p.id);
+                                            setGuestEmotion("");
                                         }}
                                         className="text-xs text-[#4A89DA] font-bold underline mt-1"
                                     >
@@ -466,38 +529,108 @@ const AnimateurFlow = () => {
       );
   }
 
-  // STAGE 4: SPEAKING TOUR (FIRST ROUND)
+  // STAGE 4: SPEAKING TOUR (FIRST ROUND - VOLUNTARY)
   if (session.stage === SessionStage.SPEAKING_TOUR) {
       const speaker = session.participants.find(p => p.id === session.currentSpeakerId);
       const photo = session.photos.find(p => p.id === speaker?.selectedPhotoId);
+      
+      const participantsWithPhotos = session.participants.filter(p => p.selectedPhotoId);
 
       return (
           <div className="flex flex-col h-full px-5 pb-6 animate-fade-in">
               <div className="pt-6 mb-4 flex justify-between items-center">
                  <h1 className="text-lg font-bold text-[#1C1C1E]">Tour de parole</h1>
-                 <span className="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded-md font-bold">1er Tour</span>
+                 <div className="flex items-center gap-2">
+                    <span className="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded-md font-bold">Volontaire</span>
+                    <button 
+                        onClick={() => {
+                             // Force finish current speaker if any
+                             if (session.currentSpeakerId) setSpeaker(undefined, true);
+                             // Move to next stage (TRANSITION) instead of END
+                             goToRoundTransition();
+                        }}
+                        className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200"
+                    >
+                        <ChevronRight size={16} />
+                    </button>
+                 </div>
               </div>
 
-              {speaker && photo ? (
+              {/* Dashboard Grid for Animateur */}
+              {!speaker ? (
+                  <div className="flex-1 flex flex-col">
+                      <p className="text-sm text-gray-500 mb-4 px-2">Cliquez sur un participant pour lui donner la parole.</p>
+                      
+                      <div className="grid grid-cols-2 gap-3 overflow-y-auto no-scrollbar pb-20">
+                          {participantsWithPhotos.map(p => {
+                              const isDone = p.status === 'done';
+                              return (
+                                  <div 
+                                    key={p.id}
+                                    onClick={() => setSpeaker(p.id)}
+                                    className={`
+                                        bg-white p-3 rounded-2xl flex flex-col items-center gap-2 text-center shadow-sm cursor-pointer border-2 transition-all active:scale-95
+                                        ${isDone ? 'border-gray-100 opacity-60 bg-gray-50' : 'border-transparent hover:border-blue-200'}
+                                    `}
+                                  >
+                                      <div className="relative">
+                                        <img src={p.avatar} className={`w-12 h-12 rounded-full ${isDone ? 'grayscale' : ''}`} />
+                                        {!isDone && <div className="absolute -top-1 -right-1 bg-blue-500 text-white rounded-full p-1 shadow-sm"><Hand size={10} /></div>}
+                                      </div>
+                                      
+                                      <div className="w-full">
+                                        <h3 className="text-sm font-bold text-[#1C1C1E] truncate">{p.name}</h3>
+                                        {p.emotionWord && (
+                                            <span className="text-[10px] text-gray-400 font-medium bg-gray-100 px-2 py-0.5 rounded-full mt-1 inline-block truncate max-w-full">
+                                                {p.emotionWord}
+                                            </span>
+                                        )}
+                                      </div>
+                                  </div>
+                              );
+                          })}
+                      </div>
+                  </div>
+              ) : (
+                  // Active Speaker View
                   <div className="flex-1 flex flex-col gap-4 animate-slide-up">
+                      <div className="flex items-center justify-between mb-2">
+                          <button 
+                            onClick={() => setSpeaker(undefined, false)}
+                            className="text-sm text-gray-500 flex items-center gap-1 font-medium hover:text-gray-800"
+                          >
+                              <ArrowLeft size={16} /> Retour liste
+                          </button>
+                          <button 
+                            onClick={() => setSpeaker(undefined, true)}
+                            className="bg-red-50 text-red-500 px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1"
+                          >
+                              <StopCircle size={14} /> Finir tour
+                          </button>
+                      </div>
+
                       {/* Active Photo */}
-                      <div className="relative rounded-[24px] overflow-hidden shadow-md aspect-square bg-gray-100">
-                          <img src={photo.url} className="w-full h-full object-cover" />
-                          <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/60 to-transparent p-6 pt-12">
-                              <div className="flex items-center gap-3 text-white">
-                                  <img src={speaker.avatar} className="w-8 h-8 rounded-full border border-white" />
-                                  <div className="flex flex-col">
-                                    <div className="flex items-center gap-2">
-                                        <span className="font-bold">{speaker.name}</span>
-                                        {speaker.roleLabel && (
-                                            <span className="text-[9px] bg-white/20 px-1.5 py-0.5 rounded-md uppercase font-bold">{speaker.roleLabel}</span>
+                      {photo && (
+                        <div className="relative rounded-[24px] overflow-hidden shadow-md aspect-square bg-gray-100">
+                            <img src={photo.url} className="w-full h-full object-cover" />
+                            <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/60 to-transparent p-6 pt-12">
+                                <div className="flex items-center gap-3 text-white">
+                                    <img src={speaker.avatar} className="w-8 h-8 rounded-full border border-white" />
+                                    <div className="flex flex-col">
+                                        <div className="flex items-center gap-2">
+                                            <span className="font-bold">{speaker.name}</span>
+                                            {speaker.roleLabel && (
+                                                <span className="text-[9px] bg-white/20 px-1.5 py-0.5 rounded-md uppercase font-bold">{speaker.roleLabel}</span>
+                                            )}
+                                        </div>
+                                        {speaker.emotionWord && (
+                                            <span className="text-xs font-medium text-yellow-300 italic">"{speaker.emotionWord}"</span>
                                         )}
                                     </div>
-                                    {speaker.isGuest && !speaker.roleLabel && <span className="text-xs opacity-80">Invité</span>}
-                                  </div>
-                              </div>
-                          </div>
-                      </div>
+                                </div>
+                            </div>
+                        </div>
+                      )}
 
                       {/* Notes Section */}
                       <Card className="flex-1 flex flex-col">
@@ -510,16 +643,7 @@ const AnimateurFlow = () => {
                           />
                       </Card>
                   </div>
-              ) : (
-                  <div className="flex-1 flex items-center justify-center text-gray-400">
-                      Chargement...
-                  </div>
               )}
-
-              <Button onClick={nextSpeaker} className="mt-4 flex justify-between px-6">
-                  <span>Suivant</span>
-                  <FastForward size={20} />
-              </Button>
           </div>
       );
   }
@@ -635,48 +759,99 @@ const AnimateurFlow = () => {
 
   // STAGE 5: SYNTHESIS / END
   if (session.stage === SessionStage.SYNTHESIS || session.stage === SessionStage.ENDED) {
+      const allEmotions = session.participants
+        .map(p => p.emotionWord)
+        .filter(w => w && w.trim().length > 0) as string[];
+
+      const participantsWithPhotos = session.participants.filter(p => p.selectedPhotoId);
+
       return (
           <>
-            <div className="flex flex-col h-full px-5 pb-6 relative animate-fade-in">
+            <div className="flex flex-col h-full px-5 pb-6 relative animate-fade-in bg-white">
                 <ConfirmModal 
                   isOpen={showResetConfirm}
-                  title="Fermer la séance ?"
-                  message="Voulez-vous vraiment quitter et réinitialiser toutes les données de la séance ?"
-                  icon={AlertTriangle}
-                  confirmLabel="Oui, fermer"
-                  confirmVariant="danger"
-                  onConfirm={() => {
-                      resetSession();
-                      setRole(UserRole.NONE);
-                      setShowResetConfirm(false);
-                  }}
+                  title="Archiver cette séance ?"
+                  message="Souhaitez-vous sauvegarder cette séance et son compte-rendu dans vos archives ?"
+                  icon={Archive}
+                  confirmLabel="Oui, archiver et quitter"
+                  confirmVariant="primary"
+                  onConfirm={handleArchiveAndClose}
                   onCancel={() => setShowResetConfirm(false)}
+                  alternateAction={{
+                      label: "Ne pas archiver (Supprimer)",
+                      onClick: handleCloseWithoutArchive
+                  }}
               />
 
                 <Header title="Synthèse" stage="Fin de séance" />
                 
                 <div className="flex-1 overflow-y-auto no-scrollbar">
-                    <Card className="bg-yellow-50 border-yellow-100 mb-6">
+                    {/* VISUAL RECAP GRID (Always visible for print/screen) */}
+                    <div className="mb-6">
+                        <h2 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                             <ImageIcon size={16} /> Récapitulatif Visuel
+                        </h2>
+                        <div className="grid grid-cols-2 gap-4">
+                            {participantsWithPhotos.map(p => {
+                                const photo = session.photos.find(ph => ph.id === p.selectedPhotoId);
+                                return (
+                                    <div key={p.id} className="print-card rounded-xl overflow-hidden border border-gray-100 shadow-sm bg-gray-50 break-inside-avoid">
+                                        <div className="aspect-square bg-gray-200">
+                                            <img src={photo?.url} className="w-full h-full object-cover" />
+                                        </div>
+                                        <div className="p-3">
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <img src={p.avatar} className="w-6 h-6 rounded-full" />
+                                                <span className="font-bold text-sm text-[#1C1C1E] truncate">{p.name}</span>
+                                            </div>
+                                            {p.emotionWord && (
+                                                <span className="text-xs text-blue-600 font-medium bg-blue-50 px-2 py-0.5 rounded-md inline-block">
+                                                    "{p.emotionWord}"
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+
+                    {allEmotions.length > 0 && (
+                        <Card className="bg-blue-50 border-blue-100 mb-6 print-card">
+                            <div className="flex items-center gap-3 mb-4">
+                                <div className="w-8 h-8 rounded-full bg-blue-100 text-[#4A89DA] flex items-center justify-center">
+                                    <Cloud size={16} />
+                                </div>
+                                <h2 className="text-sm font-bold text-blue-800 uppercase">Nuage d'émotions</h2>
+                            </div>
+                            <div className="flex flex-wrap gap-2 justify-center">
+                                {allEmotions.map((word, i) => (
+                                    <span 
+                                        key={i} 
+                                        className="bg-white text-[#4A89DA] px-3 py-1.5 rounded-xl shadow-sm font-bold text-sm"
+                                        style={{ transform: `scale(${0.9 + Math.random() * 0.3})` }}
+                                    >
+                                        {word}
+                                    </span>
+                                ))}
+                            </div>
+                        </Card>
+                    )}
+
+                    <Card className="bg-yellow-50 border-yellow-100 mb-6 print-card">
                         <div className="flex items-center gap-3 mb-3">
                             <div className="w-8 h-8 rounded-full bg-yellow-100 text-yellow-600 flex items-center justify-center">
                                 <FileText size={16} />
                             </div>
                             <h2 className="text-sm font-bold text-yellow-800 uppercase">Compte-rendu</h2>
                         </div>
-                        <p className="text-[#1C1C1E] text-sm leading-relaxed whitespace-pre-wrap">
+                        <p className="text-[#1C1C1E] text-sm leading-relaxed whitespace-pre-wrap font-mono text-justify">
                             {session.notes || "Aucune note prise durant la séance."}
                         </p>
                     </Card>
-
-                    <div className="p-4 bg-blue-50 rounded-2xl text-center">
-                        <h3 className="text-blue-800 font-bold mb-2">Conseil</h3>
-                        <p className="text-blue-600 text-xs">
-                            Prenez une capture d'écran de ces notes avant de fermer la séance.
-                        </p>
-                    </div>
                 </div>
 
-                <div className="flex flex-col gap-2 mt-4">
+                <div className="flex flex-col gap-2 mt-4 no-print">
                     <Button 
                         type="button"
                         fullWidth 

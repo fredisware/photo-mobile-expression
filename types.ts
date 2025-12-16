@@ -1,3 +1,4 @@
+
 export enum UserRole {
   ANIMATEUR = 'ANIMATEUR',
   PARTICIPANT = 'PARTICIPANT',
@@ -31,12 +32,31 @@ export interface PhotoFolder {
   photos: Photo[];
 }
 
+export interface SessionTemplate {
+  id: string;
+  title: string;
+  question: string;
+  description: string; // Pour l'animateur (contexte)
+  defaultFolderId: string;
+  icon?: string; // Nom de l'icone pour l'UI
+  isSystem?: boolean; // True if it cannot be deleted
+  
+  // Archiving properties
+  archived?: boolean;
+  archiveDate?: string;
+  archiveNotes?: string;
+  
+  // Options
+  enableEmotionInput?: boolean;
+}
+
 export interface Participant {
   id: string;
   name: string;
   avatar: string;
   status: 'waiting' | 'thinking' | 'selected' | 'speaking' | 'done';
   selectedPhotoId?: string;
+  emotionWord?: string; // Le mot-clé émotion
   selectionTimestamp?: number; // To track who picked first
   isGuest?: boolean; // True if the user has no phone and is managed by Animateur
   roleLabel?: string; // e.g. "Animateur"
@@ -46,6 +66,8 @@ export interface SessionState {
   code: string;
   theme: string;
   taskQuestion: string;
+  enableEmotionInput: boolean; // Option active pour cette séance
+  originTemplateId?: string; // ID du modèle utilisé pour créer cette séance (pour suppression future)
   stage: SessionStage;
   timerSeconds: number;
   isTimerRunning: boolean;
@@ -61,19 +83,28 @@ export interface SessionContextType {
   role: UserRole;
   setRole: (role: UserRole) => void;
   session: SessionState;
+  
+  // Templates Management
+  templates: SessionTemplate[];
+  saveTemplate: (template: SessionTemplate) => void;
+  deleteTemplate: (id: string) => void;
+  toggleArchiveTemplate: (id: string) => void;
+
   // Actions
-  createSession: (theme: string, question: string, photos: Photo[]) => void;
+  createSession: (theme: string, question: string, photos: Photo[], enableEmotionInput: boolean, originTemplateId?: string) => void;
   startSession: () => void;
   startSilentPhase: (durationMinutes: number) => void;
   startSelectionPhase: () => void;
   startSpeakingTour: () => void;
   startDebateTour: () => void;
-  nextSpeaker: () => void;
+  goToRoundTransition: () => void; // Go to intermission
+  setSpeaker: (participantId: string | undefined, markPreviousAsDone?: boolean) => void; // Manual control
+  nextSpeaker: () => void; // Auto control (kept for debate tour mainly)
   endSession: () => void;
   resetSession: () => void; // Completely reset app
   joinSession: (code: string, name: string, userId: string) => void;
   addGuestParticipant: (name: string, roleLabel?: string) => void;
-  selectPhoto: (photoId: string, userId: string) => void;
+  selectPhoto: (photoId: string, userId: string, emotionWord?: string) => void;
   toggleTimer: () => void;
   updateNotes: (notes: string) => void;
   // New Moderation & Timer features

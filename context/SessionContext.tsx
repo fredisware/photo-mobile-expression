@@ -1,12 +1,11 @@
+
 import React, { createContext, useContext, useState, useEffect, ReactNode, PropsWithChildren, useRef } from 'react';
-import { SessionContextType, SessionState, SessionStage, UserRole, Participant, Photo } from '../types';
-import { PHOTO_FOLDERS, INITIAL_SESSION_CODE } from '../constants';
+import { SessionContextType, SessionState, SessionStage, UserRole, Participant, Photo, SessionTemplate } from '../types';
+import { PHOTO_FOLDERS, INITIAL_SESSION_CODE, SESSION_TEMPLATES as DEFAULT_TEMPLATES } from '../constants';
 import { initializeApp } from 'firebase/app';
 import { getDatabase, ref, set, onValue, update as firebaseUpdate } from 'firebase/database';
 
 // --- CONFIGURATION FIREBASE ---
-// POUR PUBLIER L'APP : Remplacez ces valeurs par celles de votre projet Firebase.
-// Sans cela, l'app fonctionnera en mode "local" (BroadcastChannel) uniquement.
 const FIREBASE_CONFIG = {
   apiKey: "",
   authDomain: "",
@@ -37,16 +36,82 @@ export const useSession = () => {
   return context;
 };
 
-// Start with empty list - user will add themselves via "Join" or Animateur adds guests
+// Start with empty list
 const INITIAL_PARTICIPANTS: Participant[] = [];
 
 export const SessionProvider = ({ children }: PropsWithChildren) => {
   const [role, setRole] = useState<UserRole>(UserRole.NONE);
   
+  // Template State Management (Local Storage + Defaults)
+  const [templates, setTemplates] = useState<SessionTemplate[]>([]);
+
+  useEffect(() => {
+      // Load templates on mount
+      const saved = localStorage.getItem('custom_templates');
+      let customTemplates: SessionTemplate[] = [];
+      if (saved) {
+          try {
+              customTemplates = JSON.parse(saved);
+          } catch (e) {
+              console.error("Failed to parse templates", e);
+          }
+      }
+      // Merge system defaults (marked as system) with custom ones
+      const systemTemplates = DEFAULT_TEMPLATES.map(t => ({...t, isSystem: true}));
+      setTemplates([...customTemplates, ...systemTemplates]);
+  }, []);
+
+  const saveTemplate = (template: SessionTemplate) => {
+      // Remove isSystem flag if present, ensuring it becomes a custom template
+      // If we are saving an archive, ensure it stays archived.
+      const newTemplate = { ...template, isSystem: false };
+      
+      setTemplates(prev => {
+          const others = prev.filter(t => t.id !== newTemplate.id && !t.isSystem); // Keep other custom
+          const system = prev.filter(t => t.isSystem); // Keep system
+          const newList = [newTemplate, ...others]; // Add new at top of custom
+          
+          // Persist custom only
+          localStorage.setItem('custom_templates', JSON.stringify([newTemplate, ...others]));
+          
+          return [...newList, ...system];
+      });
+  };
+
+  const deleteTemplate = (id: string) => {
+      setTemplates(prev => {
+          // Keep everything except the one we are deleting
+          const newTemplates = prev.filter(t => t.id !== id);
+          
+          // Extract only custom templates to save to LocalStorage
+          const customOnly = newTemplates.filter(t => !t.isSystem);
+          localStorage.setItem('custom_templates', JSON.stringify(customOnly));
+          
+          return newTemplates;
+      });
+  };
+
+  const toggleArchiveTemplate = (id: string) => {
+      setTemplates(prev => {
+          const target = prev.find(t => t.id === id);
+          if (!target) return prev;
+
+          const updated = { ...target, archived: !target.archived };
+          const others = prev.filter(t => t.id !== id && !t.isSystem);
+          const system = prev.filter(t => t.isSystem);
+          
+          const newList = [updated, ...others];
+          localStorage.setItem('custom_templates', JSON.stringify(newList));
+          
+          return [...newList, ...system];
+      });
+  };
+
   const [session, setSession] = useState<SessionState>({
     code: INITIAL_SESSION_CODE,
     theme: '',
     taskQuestion: '',
+    enableEmotionInput: false,
     stage: SessionStage.LOBBY,
     timerSeconds: 300, // 5 mins
     isTimerRunning: false,
@@ -58,57 +123,39 @@ export const SessionProvider = ({ children }: PropsWithChildren) => {
   // --- SYNC ENGINE (Firebase OR BroadcastChannel) ---
   const channelRef = useRef<BroadcastChannel | null>(null);
   const isRemoteUpdate = useRef(false);
-  const sessionRef = useRef(session); // Keep track of latest session for callbacks
+  const sessionRef = useRef(session);
 
-  // Update ref whenever session changes
   useEffect(() => {
     sessionRef.current = session;
   }, [session]);
 
-  // Helper to handle state updates
-  // This replaces standard setSession to ensure we broadcast changes
   const updateSession = (updater: (prev: SessionState) => SessionState) => {
       const newState = updater(sessionRef.current);
-      
-      // 1. Update Local State (Instant UI)
       setSession(newState);
-      isRemoteUpdate.current = false; // We initiated this change
+      isRemoteUpdate.current = false;
 
-      // 2. Broadcast to Cloud (Firebase)
       if (db) {
-          // We use the session code as the unique ID in the database
           const sessionRefPath = ref(db, `sessions/${newState.code}`);
-          // We set the whole state. For a larger app, we would patch fields.
           set(sessionRefPath, newState).catch(err => console.error("Firebase write error:", err));
       } 
-      // 3. Fallback to Local Broadcast (if no Firebase)
       else if (channelRef.current) {
           channelRef.current.postMessage(newState);
       }
   };
 
   useEffect(() => {
-    // A. FIREBASE LISTENER (If Configured)
     if (db) {
         const sessionCode = session.code;
         const sessionRefPath = ref(db, `sessions/${sessionCode}`);
-        
         const unsubscribe = onValue(sessionRefPath, (snapshot) => {
             const val = snapshot.val();
-            if (val) {
-                // If we receive data from cloud, update local state
-                // We check JSON stringify to avoid infinite loops if objects are identical
-                if (JSON.stringify(val) !== JSON.stringify(sessionRef.current)) {
-                    isRemoteUpdate.current = true;
-                    setSession(val);
-                }
+            if (val && JSON.stringify(val) !== JSON.stringify(sessionRef.current)) {
+                isRemoteUpdate.current = true;
+                setSession(val);
             }
         });
-
         return () => unsubscribe();
     } 
-    
-    // B. BROADCAST CHANNEL LISTENER (Fallback)
     else {
         channelRef.current = new BroadcastChannel('photo_expression_sync');
         channelRef.current.onmessage = (event) => {
@@ -123,48 +170,37 @@ export const SessionProvider = ({ children }: PropsWithChildren) => {
                 setSession(event.data);
             }
         };
-        // Ask for state on load
         channelRef.current.postMessage('REQUEST_SYNC');
         return () => channelRef.current?.close();
     }
-  }, [session.code]); // Re-subscribe if code changes
+  }, [session.code]);
 
   // Timer Effect
   useEffect(() => {
     let interval: any;
-    // Only the Animateur drives the timer (Source of Truth)
-    // In Firebase mode, Animateur writes to DB, others listen.
     const shouldDriveTimer = role === UserRole.ANIMATEUR;
 
     if (session.isTimerRunning && session.timerSeconds > 0 && shouldDriveTimer) {
       interval = setInterval(() => {
-        // We use updateSession to push the new time to everyone
         updateSession(prev => ({ ...prev, timerSeconds: prev.timerSeconds - 1 }));
       }, 1000);
     } else if (session.isTimerRunning && session.timerSeconds === 0 && shouldDriveTimer) {
-       // Timer finished
        updateSession(prev => {
-           // If we are in selection phase and time runs out, force random selection
-           if (prev.stage === SessionStage.SELECTION_PHASE) {
-               // We need to call the logic for forceRandomSelection here but inside the update cycle
-               // To avoid code duplication, we'll just stop timer here and let Animateur click the button
-               // Or trigger it automatically (Complex due to side effects). 
-               // Let's just stop the timer.
-               return { ...prev, isTimerRunning: false };
-           }
            return { ...prev, isTimerRunning: false };
        });
     }
     return () => clearInterval(interval);
   }, [session.isTimerRunning, session.timerSeconds, session.stage, role]);
 
-  // Actions wrapped with updateSession
-  const createSession = (theme: string, question: string, photos: Photo[]) => {
+  // Actions
+  const createSession = (theme: string, question: string, photos: Photo[], enableEmotionInput: boolean = false, originTemplateId?: string) => {
     updateSession(prev => ({ 
         ...prev, 
         theme, 
         taskQuestion: question, 
         photos: photos,
+        enableEmotionInput: enableEmotionInput,
+        originTemplateId: originTemplateId,
         stage: SessionStage.LOBBY 
     }));
   };
@@ -190,10 +226,10 @@ export const SessionProvider = ({ children }: PropsWithChildren) => {
     }));
   };
 
-  const selectPhoto = (photoId: string, userId: string) => {
+  const selectPhoto = (photoId: string, userId: string, emotionWord?: string) => {
     updateSession(prev => {
       const photoTaken = prev.photos.find(p => p.id === photoId)?.selectedByUserId;
-      if (photoTaken && photoTaken !== userId) return prev; // Guard
+      if (photoTaken && photoTaken !== userId) return prev;
 
       const updatedPhotos = prev.photos.map(p => 
         p.selectedByUserId === userId ? { ...p, selectedByUserId: undefined } : p
@@ -205,7 +241,13 @@ export const SessionProvider = ({ children }: PropsWithChildren) => {
 
       const timestamp = Date.now();
       const updatedParticipants = prev.participants.map(p => 
-        p.id === userId ? { ...p, selectedPhotoId: photoId, status: 'selected' as const, selectionTimestamp: timestamp } : p
+        p.id === userId ? { 
+            ...p, 
+            selectedPhotoId: photoId, 
+            emotionWord: emotionWord,
+            status: 'selected' as const, 
+            selectionTimestamp: timestamp 
+        } : p
       );
 
       return { ...prev, photos: finalPhotos, participants: updatedParticipants };
@@ -215,6 +257,8 @@ export const SessionProvider = ({ children }: PropsWithChildren) => {
   const startSpeakingTour = () => {
     updateSession(prev => {
         const participantsWithPhotos = prev.participants.filter(p => p.selectedPhotoId);
+        
+        // Manual mode mainly, but we set a default order just in case
         const sortedParticipants = participantsWithPhotos.sort((a, b) => 
             (a.selectionTimestamp || Infinity) - (b.selectionTimestamp || Infinity)
         );
@@ -224,74 +268,127 @@ export const SessionProvider = ({ children }: PropsWithChildren) => {
           ...prev,
           stage: SessionStage.SPEAKING_TOUR,
           speakingOrder: speakingOrder,
-          currentSpeakerId: speakingOrder[0],
+          currentSpeakerId: undefined, // No one speaks initially in voluntary mode
           currentSubjectId: undefined,
           isTimerRunning: false
         };
     });
   };
 
+  const setSpeaker = (participantId: string | undefined, markPreviousAsDone: boolean = true) => {
+      updateSession(prev => {
+          const updatedParticipants = prev.participants.map(p => {
+              // New speaker becomes 'speaking'
+              if (p.id === participantId) return { ...p, status: 'speaking' as const };
+              
+              // Handle previous speaker
+              if (p.id === prev.currentSpeakerId) {
+                  // If markPreviousAsDone is true (default), they are done.
+                  // If false (e.g. going back to list to check something), revert to 'selected'.
+                  return { ...p, status: markPreviousAsDone ? 'done' as const : 'selected' as const };
+              }
+              return p;
+          });
+          
+          return {
+              ...prev,
+              currentSpeakerId: participantId,
+              participants: updatedParticipants
+          };
+      });
+  };
+
   const startDebateTour = () => {
     updateSession(prev => {
         const participantsWithPhotos = prev.participants.filter(p => p.selectedPhotoId);
-        if (participantsWithPhotos.length < 2) return { ...prev, stage: SessionStage.ENDED }; // Skip if not enough people
+        // We need at least 1 person to start
+        if (participantsWithPhotos.length < 1) return { ...prev, stage: SessionStage.ENDED };
+
+        const firstSubject = participantsWithPhotos[0];
+        // Speaker is the next person in list, or same if only 1
+        const firstSpeaker = participantsWithPhotos.length > 1 ? participantsWithPhotos[1] : participantsWithPhotos[0];
 
         return {
           ...prev,
           stage: SessionStage.DEBATE_TOUR,
-          currentSubjectId: participantsWithPhotos[0].id,
-          currentSpeakerId: participantsWithPhotos[1].id,
+          currentSubjectId: firstSubject.id,
+          currentSpeakerId: firstSpeaker.id,
           isTimerRunning: false
         };
     });
   };
 
+  const goToRoundTransition = () => {
+      updateSession(prev => ({
+          ...prev,
+          stage: SessionStage.ROUND_TRANSITION,
+          currentSpeakerId: undefined,
+          currentSubjectId: undefined
+      }));
+  };
+
   const nextSpeaker = () => {
     updateSession(prev => {
        const participants = prev.participants.filter(p => p.selectedPhotoId);
+       if (participants.length === 0) return prev;
+
+       // If only 1 participant (testing mode), flip between debating/synthesis or just end
+       if (participants.length === 1) {
+           return { ...prev, stage: SessionStage.SYNTHESIS };
+       }
+
+       let subjectIdx = participants.findIndex(p => p.id === prev.currentSubjectId);
+       let speakerIdx = participants.findIndex(p => p.id === prev.currentSpeakerId);
+
+       // 1. Try to find next speaker for SAME subject
+       let nextSpeakerIdx = (speakerIdx + 1) % participants.length;
        
-       if (prev.stage === SessionStage.SPEAKING_TOUR) {
-           const order = prev.speakingOrder || participants.map(p => p.id);
-           const currentIndex = order.indexOf(prev.currentSpeakerId || '');
-           const nextIndex = currentIndex + 1;
-
-           if (nextIndex >= order.length) {
-               return { ...prev, stage: SessionStage.ROUND_TRANSITION, currentSpeakerId: undefined };
+       // Loop until we find a speaker who is NOT the subject (unless only 1 person exists, handled above)
+       let attempts = 0;
+       while (participants[nextSpeakerIdx].id === participants[subjectIdx].id && attempts < participants.length) {
+           nextSpeakerIdx = (nextSpeakerIdx + 1) % participants.length;
+           attempts++;
+       }
+       
+       // Force Brute Force Logic:
+       // Find current speaker position relative to subject.
+       // Current: Subj=0, Spk=1. Next should be Spk=2.
+       // If Spk=Last, Next Spk=0.
+       // If Next Spk == Subj, then we are done with this Subj. Move Subj + 1.
+       
+       let newSpeakerIdx = (speakerIdx + 1) % participants.length;
+       
+       // Skip self
+       if (participants[newSpeakerIdx].id === participants[subjectIdx].id) {
+           // We hit the subject themselves. This usually means end of reactions for this photo.
+           // Move to next subject.
+           let newSubjectIdx = (subjectIdx + 1) % participants.length;
+           
+           // If we wrapped subjects, we are done with session
+           if (newSubjectIdx === 0) {
+               return { ...prev, stage: SessionStage.SYNTHESIS };
            }
-           return { ...prev, currentSpeakerId: order[nextIndex] };
+           
+           // New Subject, First Speaker (Subject + 1)
+           let newSpeakerForNewSubject = (newSubjectIdx + 1) % participants.length;
+           
+           return {
+               ...prev,
+               currentSubjectId: participants[newSubjectIdx].id,
+               currentSpeakerId: participants[newSpeakerForNewSubject].id
+           };
        }
 
-       if (prev.stage === SessionStage.DEBATE_TOUR) {
-           const currentSubjectIndex = participants.findIndex(p => p.id === prev.currentSubjectId);
-           const currentSpeakerIndex = participants.findIndex(p => p.id === prev.currentSpeakerId);
-
-           let nextSpeakerIndex = currentSpeakerIndex + 1;
-           let nextSubjectIndex = currentSubjectIndex;
-
-           while (true) {
-               if (nextSpeakerIndex >= participants.length) {
-                   nextSubjectIndex++;
-                   nextSpeakerIndex = 0;
-               }
-               if (nextSubjectIndex >= participants.length) {
-                   return { ...prev, stage: SessionStage.SYNTHESIS, currentSpeakerId: undefined, currentSubjectId: undefined };
-               }
-               if (participants[nextSpeakerIndex].id !== participants[nextSubjectIndex].id) {
-                   return { 
-                       ...prev, 
-                       currentSubjectId: participants[nextSubjectIndex].id,
-                       currentSpeakerId: participants[nextSpeakerIndex].id 
-                   };
-               }
-               nextSpeakerIndex++;
-           }
-       }
-       return prev;
+       // Otherwise, just next speaker for same subject
+       return {
+           ...prev,
+           currentSpeakerId: participants[newSpeakerIdx].id
+       };
     });
   };
 
   const endSession = () => {
-    updateSession(prev => ({ ...prev, stage: SessionStage.ENDED }));
+    updateSession(prev => ({ ...prev, stage: SessionStage.SYNTHESIS }));
   };
 
   const resetSession = () => {
@@ -299,6 +396,7 @@ export const SessionProvider = ({ children }: PropsWithChildren) => {
       code: INITIAL_SESSION_CODE,
       theme: '',
       taskQuestion: '',
+      enableEmotionInput: false,
       stage: SessionStage.LOBBY,
       timerSeconds: 300,
       isTimerRunning: false,
@@ -313,10 +411,8 @@ export const SessionProvider = ({ children }: PropsWithChildren) => {
   };
 
   const joinSession = (code: string, name: string, userId: string) => {
-      // For participants, we just add ourselves to the DB list if not there
       updateSession(prev => {
           if (prev.participants.some(p => p.id === userId)) return prev;
-          
           const newUser: Participant = {
               id: userId,
               name: name,
@@ -404,7 +500,7 @@ export const SessionProvider = ({ children }: PropsWithChildren) => {
               isTimerRunning: false,
               stage: nextStage,
               speakingOrder: speakingOrder,
-              currentSpeakerId: speakingOrder[0],
+              currentSpeakerId: undefined, // Manual start required or auto assign logic if preferred
               currentSubjectId: undefined
           };
       });
@@ -415,12 +511,18 @@ export const SessionProvider = ({ children }: PropsWithChildren) => {
       role,
       setRole,
       session,
+      templates,
+      saveTemplate,
+      deleteTemplate,
+      toggleArchiveTemplate,
       createSession,
       startSession,
       startSilentPhase,
       startSelectionPhase,
       startSpeakingTour,
       startDebateTour,
+      goToRoundTransition,
+      setSpeaker,
       nextSpeaker,
       endSession,
       resetSession,

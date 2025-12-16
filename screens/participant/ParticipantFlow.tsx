@@ -1,8 +1,9 @@
+
 import React, { useState } from 'react';
 import { useSession } from '../../context/SessionContext';
 import { SessionStage, UserRole } from '../../types';
 import { Button, Input, Card } from '../../components/Button';
-import { Clock, Lock, CheckCircle, Smile, ChevronLeft, ChevronRight, Hourglass, AlertCircle, MessageCircle, Coffee, Mic, Ear, ArrowLeft, Ban, Sparkles, Heart } from 'lucide-react';
+import { Clock, Lock, CheckCircle, Smile, ChevronLeft, ChevronRight, Hourglass, AlertCircle, MessageCircle, Coffee, Mic, Ear, ArrowLeft, Ban, Sparkles, Heart, Grid, ZoomIn, X, PenTool } from 'lucide-react';
 
 const ParticipantFlow = () => {
   const { session, joinSession, selectPhoto, setRole, removeParticipant } = useSession();
@@ -19,7 +20,14 @@ const ParticipantFlow = () => {
   const isAlreadyJoined = session.participants.some(p => p.id === myId);
   const [hasJoined, setHasJoined] = useState(isAlreadyJoined);
   
+  // View State for Selection Phase
+  const [selectionViewMode, setSelectionViewMode] = useState<'GRID' | 'FOCUS'>('GRID');
   const [carouselIndex, setCarouselIndex] = useState(0);
+
+  // Local state for emotion input
+  const [showEmotionInput, setShowEmotionInput] = useState(false);
+  const [emotionWord, setEmotionWord] = useState("");
+  const [pendingPhotoId, setPendingPhotoId] = useState<string | null>(null);
 
   const me = session.participants.find(p => p.id === myId);
 
@@ -173,8 +181,51 @@ const ParticipantFlow = () => {
       );
   }
 
-  // STAGE 3: SELECTION (CAROUSEL)
+  // STAGE 3: SELECTION
   if (session.stage === SessionStage.SELECTION_PHASE) {
+      
+      // EMOTION INPUT MODAL (Always triggered now)
+      if (showEmotionInput && pendingPhotoId) {
+          const photo = session.photos.find(p => p.id === pendingPhotoId);
+          return (
+             <div className="flex flex-col h-full bg-white p-6 animate-slide-up">
+                 <button 
+                     onClick={() => setShowEmotionInput(false)}
+                     className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center mb-6"
+                 >
+                     <ArrowLeft size={20} className="text-gray-500" />
+                 </button>
+
+                 <div className="w-24 h-24 rounded-2xl overflow-hidden mb-6 mx-auto shadow-md">
+                     <img src={photo?.url} className="w-full h-full object-cover" />
+                 </div>
+
+                 <h2 className="text-2xl font-bold text-[#1C1C1E] mb-2 text-center">Un mot pour résumer ?</h2>
+                 <p className="text-gray-400 text-center mb-8">Quelle émotion principale vous inspire ce choix ? (Facultatif)</p>
+
+                 <Input 
+                    value={emotionWord} 
+                    onChange={(e) => setEmotionWord(e.target.value)} 
+                    placeholder="Ex: Sérénité, Doute..." 
+                    className="text-center text-xl"
+                    autoFocus
+                 />
+                 
+                 <div className="flex-1"></div>
+                 
+                 <Button 
+                    onClick={() => {
+                        selectPhoto(pendingPhotoId, myId, emotionWord);
+                        setShowEmotionInput(false);
+                    }}
+                 >
+                     {emotionWord.trim() ? "Confirmer le choix" : "Confirmer (sans émotion)"}
+                 </Button>
+             </div>
+          );
+      }
+
+
       // SUB-STATE: WAITING FOR OTHERS (Selection Confirmed)
       if (me?.status === 'selected' && me?.selectedPhotoId) {
         const selectedPhoto = session.photos.find(p => p.id === me.selectedPhotoId);
@@ -190,6 +241,11 @@ const ParticipantFlow = () => {
 
                 <div className="relative w-48 h-60 rounded-2xl overflow-hidden shadow-2xl rotate-3 border-4 border-white bg-gray-200 mb-8 transition-transform hover:rotate-0 duration-500 hover:scale-105">
                     <img src={selectedPhoto?.url} className="w-full h-full object-cover" />
+                    {me.emotionWord && (
+                        <div className="absolute bottom-0 inset-x-0 bg-black/50 backdrop-blur-sm p-2 text-white text-xs font-bold text-center">
+                            {me.emotionWord}
+                        </div>
+                    )}
                 </div>
                 
                 <div className="flex items-center gap-2 text-xs text-[#4A89DA] bg-blue-50 px-4 py-2 rounded-full font-bold animate-pulse">
@@ -200,19 +256,82 @@ const ParticipantFlow = () => {
         );
       }
 
-      // SUB-STATE: BROWSING
-      const currentPhoto = session.photos[carouselIndex];
-      const isTaken = currentPhoto.selectedByUserId && currentPhoto.selectedByUserId !== myId;
+      // SUB-STATE: BROWSING (Grid or Focus)
       const mins = Math.floor(session.timerSeconds / 60);
       const secs = session.timerSeconds % 60;
 
+      // --- GRID VIEW ---
+      if (selectionViewMode === 'GRID') {
+          return (
+              <div className="flex flex-col h-full bg-[#1C1C1E] text-white animate-fade-in">
+                  <div className="px-5 pt-4 pb-2 z-10 sticky top-0 bg-[#1C1C1E]/95 backdrop-blur-sm flex justify-between items-center border-b border-white/5">
+                      <div>
+                        <h1 className="text-lg font-bold">La Table</h1>
+                        <p className="text-xs text-gray-400">Touchez pour agrandir</p>
+                      </div>
+                      {session.isTimerRunning && (
+                          <div className={`font-mono text-xl font-bold ${session.timerSeconds < 60 ? 'text-red-500 animate-pulse' : 'text-white'}`}>
+                              {mins}:{secs < 10 ? `0${secs}` : secs}
+                          </div>
+                      )}
+                  </div>
+
+                  <div className="flex-1 overflow-y-auto p-4">
+                      <div className="grid grid-cols-2 gap-3 pb-20">
+                          {session.photos.map((photo, index) => {
+                              const isTaken = photo.selectedByUserId && photo.selectedByUserId !== myId;
+                              return (
+                                  <div 
+                                    key={photo.id}
+                                    onClick={() => {
+                                        setCarouselIndex(index);
+                                        setSelectionViewMode('FOCUS');
+                                    }}
+                                    className={`
+                                        relative aspect-square rounded-xl overflow-hidden cursor-pointer bg-gray-800 transition-transform active:scale-95
+                                        ${isTaken ? 'opacity-50' : 'hover:ring-2 hover:ring-blue-500'}
+                                    `}
+                                  >
+                                      <img src={photo.url} loading="lazy" className="w-full h-full object-cover" />
+                                      {isTaken && (
+                                          <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+                                              <Lock size={20} className="text-white" />
+                                          </div>
+                                      )}
+                                      {!isTaken && (
+                                          <div className="absolute bottom-1 right-1 bg-black/50 p-1 rounded-full">
+                                              <ZoomIn size={12} className="text-white" />
+                                          </div>
+                                      )}
+                                  </div>
+                              );
+                          })}
+                      </div>
+                  </div>
+              </div>
+          );
+      }
+
+      // --- FOCUS VIEW (CAROUSEL) ---
+      const currentPhoto = session.photos[carouselIndex];
+      const isTaken = currentPhoto.selectedByUserId && currentPhoto.selectedByUserId !== myId;
+
+      const handleSelect = () => {
+          setPendingPhotoId(currentPhoto.id);
+          setShowEmotionInput(true);
+      };
+
       return (
           <div className="flex flex-col h-full bg-[#1C1C1E] text-white animate-fade-in">
-              <div className="px-5 pt-4 pb-2 z-10 sticky top-0 bg-[#1C1C1E]/95 backdrop-blur-sm flex justify-between items-start border-b border-white/5">
-                  <div>
-                    <h1 className="text-lg font-bold">Le choix</h1>
-                    <p className="text-xs text-gray-400">Une seule photo possible.</p>
-                  </div>
+              <div className="px-5 pt-4 pb-2 z-10 sticky top-0 bg-[#1C1C1E]/95 backdrop-blur-sm flex justify-between items-center border-b border-white/5">
+                  <button 
+                    onClick={() => setSelectionViewMode('GRID')}
+                    className="flex items-center gap-1 text-sm font-medium text-gray-300 hover:text-white bg-white/10 px-3 py-1.5 rounded-full transition-colors"
+                  >
+                    <Grid size={16} />
+                    Retour Grille
+                  </button>
+                  
                   {session.isTimerRunning && (
                       <div className={`font-mono text-xl font-bold ${session.timerSeconds < 60 ? 'text-red-500 animate-pulse' : 'text-white'}`}>
                           {mins}:{secs < 10 ? `0${secs}` : secs}
@@ -264,7 +383,7 @@ const ParticipantFlow = () => {
                     fullWidth 
                     className="shadow-xl h-14 text-lg"
                     disabled={!!isTaken}
-                    onClick={() => selectPhoto(currentPhoto.id, myId)}
+                    onClick={handleSelect}
                   >
                       {isTaken ? "Indisponible" : "Je choisis cette photo"}
                   </Button>
@@ -288,12 +407,14 @@ const ParticipantFlow = () => {
                   </h2>
                   {isMyTurn ? (
                       <h1 className="text-4xl font-black animate-pulse">C'est à vous !</h1>
+                  ) : speaker ? (
+                      <h1 className="text-2xl font-bold">Au tour de {speaker.name}</h1>
                   ) : (
-                      <h1 className="text-2xl font-bold">Au tour de {speaker?.name}</h1>
+                      <h1 className="text-xl font-bold text-gray-400">En attente...</h1>
                   )}
               </div>
 
-              {photo && (
+              {photo && speaker ? (
                   <div className="flex-1 flex flex-col items-center animate-slide-up">
                       <div className="w-full aspect-square rounded-[32px] overflow-hidden shadow-2xl border-[6px] border-white mb-6 bg-gray-200 transform transition-transform hover:scale-[1.02] duration-500">
                           <img src={photo.url} className="w-full h-full object-cover" />
@@ -306,8 +427,13 @@ const ParticipantFlow = () => {
                                   Expliquez pourquoi vous avez choisi cette image en réponse à : <br/>
                                   <span className="italic opacity-80 mt-1 block">"{session.taskQuestion}"</span>
                               </p>
+                              {me.emotionWord && <p className="mt-4 font-bold text-yellow-300">Émotion: {me.emotionWord}</p>}
                           </div>
                       )}
+                  </div>
+              ) : (
+                  <div className="flex-1 flex items-center justify-center">
+                     <p className="text-gray-400 italic">Levez la main pour prendre la parole...</p>
                   </div>
               )}
           </div>
