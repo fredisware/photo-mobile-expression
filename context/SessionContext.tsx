@@ -7,15 +7,14 @@ import { getDatabase, ref, set, onValue, update as firebaseUpdate } from 'fireba
 // --- CONFIGURATION FIREBASE ---
 // POUR PUBLIER L'APP : Remplacez ces valeurs par celles de votre projet Firebase.
 // Sans cela, l'app fonctionnera en mode "local" (BroadcastChannel) uniquement.
-const firebaseConfig = {
+const FIREBASE_CONFIG = {
   apiKey: "",
   authDomain: "",
   databaseURL: "",
   projectId: "",
   storageBucket: "",
   messagingSenderId: "",
-  appId: "",
-  measurementId: ""
+  appId: ""
 };
 
 // Initialize Firebase only if config is present

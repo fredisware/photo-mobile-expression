@@ -1,7 +1,6 @@
 import React from 'react';
 import { useSession } from '../context/SessionContext';
 import { UserRole } from '../types';
-import { Button } from '../components/Button';
 import { Image, Users, Sparkles, ChevronRight } from 'lucide-react';
 
 const WelcomeScreen = () => {
@@ -12,9 +11,9 @@ const WelcomeScreen = () => {
       {/* Hero Section */}
       <div className="flex-1 flex flex-col items-center justify-center p-8 text-center animate-fade-in">
         <div className="relative mb-8">
-            <div className="absolute inset-0 bg-[#4A89DA] blur-2xl opacity-20 rounded-full animate-pulse"></div>
-            <div className="relative w-28 h-28 bg-white rounded-[40px] shadow-xl flex items-center justify-center text-[#4A89DA] border-4 border-white transform hover:scale-105 transition-transform duration-500">
-                <Image size={48} strokeWidth={1.5} />
+            <div className="absolute inset-0 bg-[#4A89DA] blur-3xl opacity-20 rounded-full animate-pulse"></div>
+            <div className="relative w-32 h-32 bg-transparent transform hover:scale-105 transition-transform duration-500 drop-shadow-2xl">
+                <img src="/icon.svg" alt="App Logo" className="w-full h-full object-contain" />
             </div>
             <div className="absolute -top-2 -right-2 bg-yellow-400 text-white p-2 rounded-full shadow-lg animate-bounce">
                 <Sparkles size={16} />
