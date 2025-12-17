@@ -254,6 +254,17 @@ export const SessionProvider = ({ children }: PropsWithChildren) => {
     });
   };
 
+  const rotatePhoto = (photoId: string) => {
+      updateSession(prev => ({
+          ...prev,
+          photos: prev.photos.map(p => 
+              p.id === photoId 
+                  ? { ...p, rotation: ((p.rotation || 0) + 90) % 360 } 
+                  : p
+          )
+      }));
+  };
+
   const startSpeakingTour = () => {
     updateSession(prev => {
         const participantsWithPhotos = prev.participants.filter(p => p.selectedPhotoId);
@@ -529,6 +540,7 @@ export const SessionProvider = ({ children }: PropsWithChildren) => {
       joinSession,
       addGuestParticipant,
       selectPhoto,
+      rotatePhoto,
       toggleTimer,
       updateNotes,
       removeParticipant,

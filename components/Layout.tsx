@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { Capacitor } from '@capacitor/core';
+
+import React from 'react';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -7,49 +7,24 @@ interface LayoutProps {
   showBack?: boolean;
 }
 
-const Layout: React.FC<LayoutProps> = ({ children, title }) => {
-  // State to track if we are running natively (Android/iOS)
-  const [isNative, setIsNative] = useState(false);
-
-  useEffect(() => {
-    setIsNative(Capacitor.isNativePlatform());
-  }, []);
-
+const Layout: React.FC<LayoutProps> = ({ children }) => {
   return (
-    // Background: Neutral on desktop, Theme background on mobile
-    <div className={`min-h-screen flex items-center justify-center transition-colors duration-300 ${isNative ? 'bg-[#F6F1EA]' : 'bg-gray-200'}`}>
+    // Background global
+    <div className="min-h-screen w-full bg-[#F4F4F7] flex flex-col items-center">
       
       {/* 
-         Responsive Container:
-         - Mobile/Native: w-full h-full (Full Screen)
-         - Desktop: Max width 400px, Fixed height, Rounded corners, Border, Shadow (Simulator Look)
+         Conteneur Responsive :
+         - Mobile : 100% width/height
+         - Desktop : Centré, largeur max raisonnable (pour ne pas étirer le texte à l'infini),
+                     mais assez large pour un dashboard (max-w-6xl).
+         - Ombre et fond blanc/beige sur desktop pour délimiter l'app.
       */}
-      <div className={`
-        flex flex-col relative bg-[#F6F1EA] transition-all duration-300
-        ${isNative 
-          ? 'w-full h-screen' // Native Mode: Full viewport 
-          : 'w-full h-full sm:max-w-[400px] sm:h-[850px] sm:shadow-2xl sm:rounded-[40px] sm:border-8 sm:border-gray-800 sm:overflow-hidden' // Desktop Mode: Phone Frame
-        }
-      `}>
+      <div className="w-full h-screen md:h-auto md:min-h-screen bg-[#F6F1EA] md:shadow-xl md:my-0 md:mx-auto max-w-[1400px] flex flex-col relative overflow-hidden">
         
-        {/* Fake Notch / Status Bar - Only visible on Desktop Simulator */}
-        {!isNative && (
-           <div className="hidden sm:flex h-8 bg-[#F6F1EA] items-end justify-center pb-2 z-10 shrink-0 select-none">
-             <div className="w-20 h-5 bg-black rounded-b-xl"></div>
-           </div>
-        )}
-
         {/* Content Area */}
         <main className="flex-1 overflow-y-auto relative no-scrollbar flex flex-col">
            {children}
         </main>
-
-        {/* Fake Home Bar - Only visible on Desktop Simulator */}
-        {!isNative && (
-            <div className="hidden sm:flex h-6 bg-[#F6F1EA] items-start justify-center pt-2 shrink-0">
-                <div className="w-32 h-1 bg-gray-300 rounded-full"></div>
-            </div>
-        )}
 
       </div>
     </div>

@@ -1,7 +1,8 @@
+
 import React from 'react';
 import { useSession } from '../context/SessionContext';
 import { UserRole } from '../types';
-import { Image, Users, Sparkles, ChevronRight } from 'lucide-react';
+import { Image, Users, Sparkles, ChevronRight, Layout } from 'lucide-react';
 
 const WelcomeScreen = () => {
   const { setRole } = useSession();
@@ -13,7 +14,6 @@ const WelcomeScreen = () => {
         <div className="relative mb-8">
             <div className="absolute inset-0 bg-[#4A89DA] blur-3xl opacity-20 rounded-full animate-pulse"></div>
             <div className="relative w-32 h-32 bg-transparent transform hover:scale-105 transition-transform duration-500 drop-shadow-2xl">
-                {/* Inline SVG Logo to ensure it displays correctly */}
                 <svg viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
                     <rect width="512" height="512" rx="128" fill="#4A89DA"/>
                     <path d="M368 144H144C117.49 144 96 165.49 96 192V320C96 346.51 117.49 368 144 368H368C394.51 368 416 346.51 416 320V192C416 165.49 394.51 144 368 144Z" fill="white" fillOpacity="0.2"/>
@@ -76,8 +76,18 @@ const WelcomeScreen = () => {
             </button>
         </div>
 
-        <p className="text-center text-[10px] text-gray-300 mt-8 font-medium">
-            v1.0.0 • Mobile Experience
+        {/* Mockup Button */}
+        <div className="mt-8 flex justify-center">
+            <button 
+                onClick={() => setRole(UserRole.MOCKUP)}
+                className="flex items-center gap-2 text-xs font-bold text-secondary hover:text-primary transition-colors py-2 px-4 rounded-full bg-gray-50 border border-gray-100"
+            >
+                <Layout size={14} /> Voir la Maquette Design (PDF)
+            </button>
+        </div>
+
+        <p className="text-center text-[10px] text-gray-300 mt-4 font-medium">
+            v1.1.0 • Mobile Experience
         </p>
       </div>
     </div>

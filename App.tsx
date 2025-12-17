@@ -1,9 +1,11 @@
+
 import React from 'react';
 import { SessionProvider, useSession } from './context/SessionContext';
 import Layout from './components/Layout';
 import WelcomeScreen from './screens/WelcomeScreen';
 import AnimateurFlow from './screens/animateur/AnimateurFlow';
 import ParticipantFlow from './screens/participant/ParticipantFlow';
+import MockupScreen from './screens/MockupScreen';
 import { UserRole } from './types';
 
 const AppContent = () => {
@@ -14,6 +16,7 @@ const AppContent = () => {
       {role === UserRole.NONE && <WelcomeScreen />}
       {role === UserRole.ANIMATEUR && <AnimateurFlow />}
       {role === UserRole.PARTICIPANT && <ParticipantFlow />}
+      {role === UserRole.MOCKUP && <MockupScreen />}
     </Layout>
   );
 };
