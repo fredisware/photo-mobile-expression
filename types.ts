@@ -85,7 +85,7 @@ export interface SessionContextType {
   saveTemplate: (template: SessionTemplate) => void;
   deleteTemplate: (id: string) => void;
   toggleArchiveTemplate: (id: string) => void;
-  createSession: (theme: string, question: string, photos: Photo[], enableEmotionInput: boolean, originTemplateId?: string) => void;
+  createSession: (theme: string, question: string, photos: Photo[], enableEmotionInput: boolean, originTemplateId?: string, initialNotes?: string) => void;
   startSession: () => void;
   startSilentPhase: (durationMinutes: number) => void;
   startSelectionPhase: () => void;

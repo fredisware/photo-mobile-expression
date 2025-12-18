@@ -2,7 +2,7 @@
 import React from 'react';
 import { useSession } from '../context/SessionContext';
 import { UserRole } from '../types';
-import { Image, Users, Sparkles, ChevronRight, Layout } from 'lucide-react';
+import { Image, Users, Sparkles, ChevronRight } from 'lucide-react';
 
 const WelcomeScreen = () => {
   const { setRole } = useSession();
@@ -28,27 +28,18 @@ const WelcomeScreen = () => {
             </div>
         </div>
         
-        <h1 className="text-3xl font-black text-[#1C1C1E] mb-3 tracking-tight">
-            Photo Expression
-        </h1>
-        <p className="text-[#777B80] text-lg leading-relaxed max-w-[260px]">
-            Facilitez vos ateliers et libérez la parole par l'image.
-        </p>
+        <h1 className="text-3xl font-black text-[#1C1C1E] mb-3 tracking-tight">Photo Expression</h1>
+        <p className="text-[#777B80] text-lg leading-relaxed max-w-[260px]">Facilitez vos ateliers et libérez la parole par l'image.</p>
       </div>
 
       {/* Action Card */}
       <div className="bg-white rounded-t-[32px] p-8 shadow-[0_-10px_40px_rgba(0,0,0,0.05)] animate-slide-up">
-        <h2 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-6 text-center">
-            Commencer en tant que
-        </h2>
+        <h2 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-6 text-center">Commencer en tant que</h2>
         
         <div className="flex flex-col gap-4">
-            <button 
-                onClick={() => setRole(UserRole.ANIMATEUR)}
-                className="group flex items-center justify-between p-4 rounded-2xl border border-blue-100 hover:border-[#4A89DA] bg-blue-50/50 hover:bg-blue-50 transition-all active:scale-95"
-            >
+            <button onClick={() => setRole(UserRole.ANIMATEUR)} className="group flex items-center justify-between p-4 rounded-2xl border border-blue-100 hover:border-[#4A89DA] bg-blue-50/50 hover:bg-blue-50 transition-all active:scale-95">
                 <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-xl bg-[#4A89DA] text-white flex items-center justify-center shadow-md group-hover:shadow-lg transition-shadow">
+                    <div className="w-12 h-12 rounded-xl bg-[#4A89DA] text-white flex items-center justify-center shadow-md">
                         <Users size={24} />
                     </div>
                     <div className="text-left">
@@ -59,12 +50,9 @@ const WelcomeScreen = () => {
                 <ChevronRight size={20} className="text-gray-300 group-hover:text-[#4A89DA]" />
             </button>
 
-            <button 
-                onClick={() => setRole(UserRole.PARTICIPANT)}
-                className="group flex items-center justify-between p-4 rounded-2xl border border-gray-100 hover:border-gray-300 bg-white hover:bg-gray-50 transition-all active:scale-95 shadow-sm"
-            >
+            <button onClick={() => setRole(UserRole.PARTICIPANT)} className="group flex items-center justify-between p-4 rounded-2xl border border-gray-100 hover:border-gray-300 bg-white hover:bg-gray-50 transition-all active:scale-95 shadow-sm">
                 <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-xl bg-gray-100 text-gray-500 flex items-center justify-center group-hover:bg-gray-200 transition-colors">
+                    <div className="w-12 h-12 rounded-xl bg-gray-100 text-gray-500 flex items-center justify-center">
                         <Image size={24} />
                     </div>
                     <div className="text-left">
@@ -76,19 +64,9 @@ const WelcomeScreen = () => {
             </button>
         </div>
 
-        {/* Mockup Button */}
-        <div className="mt-8 flex justify-center">
-            <button 
-                onClick={() => setRole(UserRole.MOCKUP)}
-                className="flex items-center gap-2 text-xs font-bold text-secondary hover:text-primary transition-colors py-2 px-4 rounded-full bg-gray-50 border border-gray-100"
-            >
-                <Layout size={14} /> Voir la Maquette Design (PDF)
-            </button>
+        <div className="mt-8 text-center">
+            <p className="text-[10px] text-gray-300 font-bold uppercase tracking-widest">Version Finale 1.2</p>
         </div>
-
-        <p className="text-center text-[10px] text-gray-300 mt-4 font-medium">
-            v1.1.0 • Mobile Experience
-        </p>
       </div>
     </div>
   );

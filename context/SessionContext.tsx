@@ -193,7 +193,7 @@ export const SessionProvider = ({ children }: PropsWithChildren) => {
   }, [session.isTimerRunning, session.timerSeconds, session.stage, role]);
 
   // Actions
-  const createSession = (theme: string, question: string, photos: Photo[], enableEmotionInput: boolean = false, originTemplateId?: string) => {
+  const createSession = (theme: string, question: string, photos: Photo[], enableEmotionInput: boolean = false, originTemplateId?: string, initialNotes?: string) => {
     updateSession(prev => ({ 
         ...prev, 
         theme, 
@@ -201,6 +201,7 @@ export const SessionProvider = ({ children }: PropsWithChildren) => {
         photos: photos,
         enableEmotionInput: enableEmotionInput,
         originTemplateId: originTemplateId,
+        notes: initialNotes || '',
         stage: SessionStage.LOBBY 
     }));
   };

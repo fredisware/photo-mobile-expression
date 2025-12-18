@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { useSession } from '../../context/SessionContext';
 import { SessionStage, UserRole } from '../../types';
 import { Button, Input, Card } from '../../components/Button';
-import { Clock, Lock, CheckCircle, Smile, ChevronLeft, ChevronRight, Hourglass, AlertCircle, MessageCircle, Coffee, Mic, Ear, ArrowLeft, Ban, Sparkles, Heart, Grid, ZoomIn, X, PenTool, RotateCw } from 'lucide-react';
+import { Clock, Lock, CheckCircle, Smile, ChevronLeft, ChevronRight, Hourglass, AlertCircle, MessageCircle, Coffee, Mic, Ear, ArrowLeft, Ban, Sparkles, Heart, Grid, ZoomIn, X, PenTool, RotateCw, Maximize, Minimize } from 'lucide-react';
 
 const ParticipantFlow = () => {
   const { session, joinSession, selectPhoto, setRole, removeParticipant, rotatePhoto } = useSession();
@@ -12,6 +12,7 @@ const ParticipantFlow = () => {
   const [code, setCode] = useState("");
   const [name, setName] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [isPhotoZoomed, setIsPhotoZoomed] = useState(false);
   
   // Generate random ID once per component mount to ensure uniqueness in multi-tab testing
   const [myId] = useState(() => 'user-' + Math.random().toString(36).substr(2, 9));
@@ -200,10 +201,13 @@ const ParticipantFlow = () => {
                         <ArrowLeft size={20} className="text-gray-500" />
                     </button>
 
-                    <div className="w-40 h-40 rounded-3xl overflow-hidden mb-8 mx-auto shadow-lg relative">
+                    <div 
+                      className="w-40 h-40 rounded-3xl overflow-hidden mb-8 mx-auto shadow-lg relative bg-gray-50"
+                      onClick={() => setIsPhotoZoomed(!isPhotoZoomed)}
+                    >
                         <img 
                             src={photo?.url} 
-                            className="w-full h-full object-cover transition-transform duration-500"
+                            className={`w-full h-full transition-all duration-500 ${isPhotoZoomed ? 'object-contain' : 'object-cover'}`}
                             style={{ transform: `rotate(${photo?.rotation || 0}deg)` }}
                         />
                     </div>
@@ -249,10 +253,13 @@ const ParticipantFlow = () => {
                     Gardez votre téléphone, nous allons bientôt en parler.
                 </p>
 
-                <div className="relative w-48 h-60 rounded-2xl overflow-hidden shadow-2xl rotate-3 border-4 border-white bg-gray-200 mb-8 transition-transform hover:rotate-0 duration-500 hover:scale-105 md:w-64 md:h-80">
+                <div 
+                  className="relative w-48 h-60 rounded-2xl overflow-hidden shadow-2xl rotate-3 border-4 border-white bg-gray-200 mb-8 transition-all hover:rotate-0 duration-500 hover:scale-105 md:w-64 md:h-80"
+                  onClick={() => setIsPhotoZoomed(!isPhotoZoomed)}
+                >
                     <img 
                         src={selectedPhoto?.url} 
-                        className="w-full h-full object-cover transition-transform duration-500"
+                        className={`w-full h-full transition-all duration-500 ${isPhotoZoomed ? 'object-contain' : 'object-cover'}`}
                         style={{ transform: `rotate(${selectedPhoto?.rotation || 0}deg)` }}
                     />
                     {me.emotionWord && (
@@ -361,10 +368,13 @@ const ParticipantFlow = () => {
               
               {/* Carousel View */}
               <div className="flex-1 flex flex-col items-center justify-center p-4 relative">
-                  <div className="relative w-full aspect-[4/5] max-h-[55vh] md:max-h-[70vh] max-w-lg rounded-[32px] overflow-hidden shadow-2xl mb-6 bg-gray-800 border-2 border-transparent transition-all">
+                  <div 
+                    className="relative w-full aspect-[4/5] max-h-[55vh] md:max-h-[70vh] max-w-lg rounded-[32px] overflow-hidden shadow-2xl mb-6 bg-gray-800 border-2 border-transparent transition-all"
+                    onClick={() => setIsPhotoZoomed(!isPhotoZoomed)}
+                  >
                       <img 
                         src={currentPhoto.url} 
-                        className="w-full h-full object-cover transition-transform duration-500 ease-in-out"
+                        className={`w-full h-full transition-all duration-500 ease-in-out ${isPhotoZoomed ? 'object-contain' : 'object-cover'}`}
                         style={{ transform: `rotate(${currentPhoto.rotation || 0}deg)` }}
                       />
                       
@@ -376,17 +386,28 @@ const ParticipantFlow = () => {
                           </div>
                       )}
 
-                      {/* Rotate Button Overlay */}
-                      <button 
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            rotatePhoto(currentPhoto.id);
-                        }}
-                        className="absolute top-4 right-4 w-12 h-12 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition-colors z-20 backdrop-blur-sm"
-                        title="Pivoter la photo"
-                      >
-                          <RotateCw size={24} />
-                      </button>
+                      {/* Control Overlays */}
+                      <div className="absolute top-4 right-4 flex flex-col gap-2">
+                        <button 
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                rotatePhoto(currentPhoto.id);
+                            }}
+                            className="w-12 h-12 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition-colors z-20 backdrop-blur-sm shadow-lg"
+                            title="Pivoter la photo"
+                        >
+                            <RotateCw size={24} />
+                        </button>
+                        <button 
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setIsPhotoZoomed(!isPhotoZoomed);
+                            }}
+                            className="w-12 h-12 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition-colors z-20 backdrop-blur-sm shadow-lg"
+                        >
+                            {isPhotoZoomed ? <Minimize size={24} /> : <Maximize size={24} />}
+                        </button>
+                      </div>
                   </div>
 
                   {/* Navigation Controls */}
@@ -452,24 +473,38 @@ const ParticipantFlow = () => {
 
               {photo && speaker ? (
                   <div className="flex-1 flex flex-col items-center animate-slide-up max-w-xl w-full">
-                      <div className="w-full aspect-square rounded-[32px] overflow-hidden shadow-2xl border-[6px] border-white mb-6 bg-gray-200 transform transition-transform hover:scale-[1.02] duration-500 relative group">
+                      <div 
+                        className="w-full aspect-square rounded-[32px] overflow-hidden shadow-2xl border-[6px] border-white mb-6 bg-gray-200 transform transition-transform hover:scale-[1.02] duration-500 relative group"
+                        onClick={() => setIsPhotoZoomed(!isPhotoZoomed)}
+                      >
                           <img 
                             src={photo.url} 
-                            className="w-full h-full object-cover transition-transform duration-500"
+                            className={`w-full h-full transition-all duration-500 ${isPhotoZoomed ? 'object-contain' : 'object-cover'}`}
                             style={{ transform: `rotate(${photo.rotation || 0}deg)` }}
                           />
                           {/* Allow user to fix rotation even during speaking if needed */}
-                          {isMyTurn && (
+                          <div className="absolute top-4 right-4 flex flex-col gap-2">
+                              {isMyTurn && (
+                                  <button 
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        rotatePhoto(photo.id);
+                                    }}
+                                    className="w-10 h-10 rounded-full bg-black/30 text-white flex items-center justify-center hover:bg-black/50 transition-colors opacity-0 group-hover:opacity-100 shadow-lg backdrop-blur-sm"
+                                  >
+                                      <RotateCw size={20} />
+                                  </button>
+                              )}
                               <button 
                                 onClick={(e) => {
                                     e.stopPropagation();
-                                    rotatePhoto(photo.id);
+                                    setIsPhotoZoomed(!isPhotoZoomed);
                                 }}
-                                className="absolute top-4 right-4 w-10 h-10 rounded-full bg-black/30 text-white flex items-center justify-center hover:bg-black/50 transition-colors opacity-0 group-hover:opacity-100"
+                                className="w-10 h-10 rounded-full bg-black/30 text-white flex items-center justify-center hover:bg-black/50 transition-colors opacity-0 group-hover:opacity-100 shadow-lg backdrop-blur-sm"
                               >
-                                  <RotateCw size={20} />
+                                  {isPhotoZoomed ? <Minimize size={20} /> : <Maximize size={20} />}
                               </button>
-                          )}
+                          </div>
                       </div>
                       
                       {isMyTurn && (
@@ -541,15 +576,27 @@ const ParticipantFlow = () => {
 
               {photo && subject && (
                   <div className="flex-1 flex flex-col items-center justify-center animate-slide-up max-w-xl w-full">
-                      <div className="w-56 h-56 rounded-[32px] overflow-hidden shadow-2xl border-4 border-white mb-8 bg-gray-200 relative group md:w-80 md:h-80">
+                      <div 
+                        className="w-56 h-56 rounded-[32px] overflow-hidden shadow-2xl border-4 border-white mb-8 bg-gray-200 relative group md:w-80 md:h-80"
+                        onClick={() => setIsPhotoZoomed(!isPhotoZoomed)}
+                      >
                           <img 
                             src={photo.url} 
-                            className="w-full h-full object-cover transform transition-transform duration-700 group-hover:scale-110" 
+                            className={`w-full h-full transition-all duration-700 ${isPhotoZoomed ? 'object-contain' : 'object-cover'} group-hover:scale-110`} 
                             style={{ transform: `rotate(${photo.rotation || 0}deg)` }}
                           />
                           <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-[10px] text-center py-2 backdrop-blur-sm uppercase font-bold tracking-widest">
                               Photo de {subject.name}
                           </div>
+                          <button 
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setIsPhotoZoomed(!isPhotoZoomed);
+                            }}
+                            className="absolute top-4 right-4 w-10 h-10 rounded-full bg-black/30 text-white flex items-center justify-center hover:bg-black/50 transition-colors opacity-0 group-hover:opacity-100 shadow-lg backdrop-blur-sm"
+                          >
+                              {isPhotoZoomed ? <Minimize size={20} /> : <Maximize size={20} />}
+                          </button>
                       </div>
                       
                       {isMyTurn ? (
